@@ -24,6 +24,40 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should filter games by category and publisher', async ({ page }) => {
+    await test.step('Navigate to homepage and inspect filter controls', async () => {
+      await page.goto('/');
+      await expect(page.getByTestId('game-filters')).toBeVisible();
+      await expect(page.getByTestId('category-filter-1')).toBeVisible();
+      await expect(page.getByTestId('publisher-filter')).toBeVisible();
+    });
+
+    await test.step('Apply a category filter', async () => {
+      await page.getByTestId('category-filter-1').check();
+      await page.getByTestId('apply-filters').click();
+      await expect(page).toHaveURL(/category=1/);
+      await expect(page.locator('[data-testid="game-card"]:visible').first()).toBeVisible();
+      await expect(page.getByTestId('category-filter-1')).toBeChecked();
+    });
+
+    await test.step('Add a publisher filter and verify combined URL state', async () => {
+      const publisherFilter = page.getByTestId('publisher-filter');
+      const publisherValue = await publisherFilter.locator('option').nth(1).getAttribute('value');
+      expect(publisherValue).toBeTruthy();
+      await publisherFilter.selectOption(publisherValue!);
+      await page.getByTestId('apply-filters').click();
+      await expect(page).toHaveURL(new RegExp(`category=1.*publisher=${publisherValue}`));
+      await expect(publisherFilter).toHaveValue(publisherValue!);
+    });
+
+    await test.step('Clear filters', async () => {
+      await page.getByTestId('clear-filters').click();
+      await expect(page).toHaveURL('/');
+      await expect(page.getByTestId('category-filter-1')).not.toBeChecked();
+      await expect(page.getByTestId('publisher-filter')).toHaveValue('');
+    });
+  });
+
   test('should navigate to correct game details page when clicking on a game', async ({ page }) => {
     let gameId: string | null;
     let gameTitle: string | null;
